@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, DATETIME
+from sqlalchemy import ForeignKey, DATETIME, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from enum import StrEnum, Enum
 from sqlalchemy import LargeBinary
@@ -35,9 +35,14 @@ class Advert(Base):
     type: Mapped[AdvertType]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=datetime.now(timezone.utc)
     )
-    is_active: Mapped[bool]
+    is_active: Mapped[bool] = mapped_column(
+        default=True,
+        server_default=text('true'),
+        nullable=False)
 
 # таблица user (user_name, password, is_admin, is_banned)
 # таблица обьявления (названия обьявления, описание, тип обьявления(группа),
