@@ -37,12 +37,14 @@ class Advert(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
-        default=datetime.now(timezone.utc)
+        default=datetime.now(timezone.utc),
     )
     is_active: Mapped[bool] = mapped_column(
-        default=True,
-        server_default=text('true'),
-        nullable=False)
+        default=True, server_default=text("true"), nullable=False
+    )
+
+
+
 
 # таблица user (user_name, password, is_admin, is_banned)
 # таблица обьявления (названия обьявления, описание, тип обьявления(группа),

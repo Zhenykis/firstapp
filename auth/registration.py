@@ -1,5 +1,9 @@
+from idlelib.rpc import response_queue
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, HTTPException, Depends, status, Response
+from fastapi import APIRouter, HTTPException, Depends, status, Response, Request
+from starlette.responses import JSONResponse
+from sqlalchemy import update
 from auth.utils import get_password_hash, generate_token
 from repository.user import (
     create_user,
@@ -9,9 +13,9 @@ from repository.user import (
     UserNotFound,
     authenticate_user,
 )
-from .schemas import UserIn
+from auth.schemas import UserIn
 from db_helper import get_db
-
+from models import User
 
 router = APIRouter(
     prefix="/reg",
@@ -19,7 +23,7 @@ router = APIRouter(
 )
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/registration/", status_code=status.HTTP_201_CREATED)
 async def registration_users(user_data: UserIn, db: AsyncSession = Depends(get_db)):
     hash_password = get_password_hash(user_data.password)
     try:
@@ -35,7 +39,15 @@ async def registration_users(user_data: UserIn, db: AsyncSession = Depends(get_d
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_user(
+    request: Request, user_id: int, db: AsyncSession = Depends(get_db)
+):
+
+    if not hasattr(request.state, "user"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Требуется авторизация!"
+        )
+
     try:
         remove_user = await del_user(user_id=user_id, db=db)
     except UserNotFound as e:
@@ -55,7 +67,7 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
         )
 
 
-@router.post("/authenticate", status_code=status.HTTP_200_OK)
+@router.post("/authenticate/", status_code=status.HTTP_200_OK)
 async def auth_user(
     response: Response, user_data: UserIn, db: AsyncSession = Depends(get_db)
 ):
@@ -77,5 +89,20 @@ async def auth_user(
     return f"Пользователь {user_data.username} успешно авторизован!"
 
 
-# ручка получения всех пользователей
-# ручка получения пользователя по айди
+@router.post("/logout/", status_code=status.HTTP_200_OK)
+async def logout_user(request: Request, db: AsyncSession = Depends(get_db)):
+    if not hasattr(request.state, "user"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Не авторизован!"
+        )
+    user_token = request.state.user.token
+    result = await db.execute(
+        update(User).where(User.token == user_token).values(token=None)
+    )
+    # token = result.scalars().first()
+    # if User.token == None:
+    # await db.delete(token)
+    await db.commit()
+    response = JSONResponse(content={"msg": "Успешный выход!"})
+    response.delete_cookie("user_cookie")
+    return response

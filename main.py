@@ -3,11 +3,13 @@ import uvicorn
 from fastapi import FastAPI
 from auth.registration import router as reg_router
 from advert.advertisements import router as advert_router
+from auth.auth_middleware import AuthMiddleWare
 
 app = FastAPI()
 
 app.include_router(reg_router)
 app.include_router(advert_router)
+app.add_middleware(AuthMiddleWare)
 
 
 @app.get("/")

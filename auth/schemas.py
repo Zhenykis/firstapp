@@ -8,3 +8,7 @@ class UserIn(BaseModel):
 
 class UserOut(UserIn):
     username: str
+
+
+class UserToken(UserIn):
+    token: str

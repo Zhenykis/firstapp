@@ -28,7 +28,7 @@ async def create_advert(
         description=description,
         type=advert_type,
         created_at=created_at,
-        user_id=user_id
+        user_id=user_id,
     )
 
     result = await db.execute(select(User).where(User.id == user_id))
