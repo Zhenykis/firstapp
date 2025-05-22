@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, DATETIME, func, text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from enum import StrEnum, Enum
 from sqlalchemy import LargeBinary
 from datetime import datetime, timezone
@@ -19,6 +19,8 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(default=False)
     is_banned: Mapped[bool] = mapped_column(default=False)
     token: Mapped[str] = mapped_column(nullable=True)
+
+    comments: Mapped[list["Comment"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class AdvertType(StrEnum):
@@ -43,14 +45,23 @@ class Advert(Base):
         default=True, server_default=text("true"), nullable=False
     )
 
+    comments: Mapped[list["Comment"]] = relationship(back_populates="advert", cascade="all, delete-orphan")
+    #comments = relationship("Comment", back_populates="advert", cascade="all, delete-orphan")
+
+class Comment(Base):
+    __tablename__ = "comment"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    text: Mapped[str]
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    advert_id: Mapped[int] = mapped_column(ForeignKey("advert.id"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=datetime.now(timezone.utc),
+    )
+
+    user = relationship("User", back_populates="comments")
+    advert = relationship("Advert", back_populates="comments")
 
 
-
-# таблица user (user_name, password, is_admin, is_banned)
-# таблица обьявления (названия обьявления, описание, тип обьявления(группа),
-# таблица с комментариями к обьявлениям (текст и время создания)
-
-
-# сделать нинициализацию алембика
-# сделать миграцию алембика (постараться сделать так, чтобы каждая таблица была в новой миграции)
-# нужно накатить миграции на новую базу
