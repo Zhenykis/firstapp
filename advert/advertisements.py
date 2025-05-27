@@ -86,3 +86,5 @@ async def get_advert(advert_id: int, db: AsyncSession = Depends(get_db)):
         )
     full_advert = await get_full_advert(advert_id=advert_id, db=db)
     return full_advert
+
+

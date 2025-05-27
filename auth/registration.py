@@ -5,14 +5,9 @@ from fastapi import APIRouter, HTTPException, Depends, status, Response, Request
 from starlette.responses import JSONResponse
 from sqlalchemy import update
 from auth.utils import get_password_hash, generate_token
-from repository.user import (
-    create_user,
-    DoubleNameException,
-    delete_user as del_user,
-    get_user,
-    UserNotFound,
-    authenticate_user,
-)
+from repository.user import UserRepository, UserNotFound
+
+
 from auth.schemas import UserIn
 from db_helper import get_db
 from models import User
@@ -27,8 +22,9 @@ router = APIRouter(
 async def registration_users(user_data: UserIn, db: AsyncSession = Depends(get_db)):
     hash_password = get_password_hash(user_data.password)
     try:
-        db_user = await create_user(
-            username=user_data.username, password=hash_password, db=db, is_admin=False
+        user_repo = UserRepository(db)
+        db_user = await user_repo.create_user(
+            username=user_data.username, password=hash_password,is_admin=False
         )
     except DoubleNameException as e:
         raise HTTPException(
@@ -49,7 +45,8 @@ async def delete_user(
         )
 
     try:
-        remove_user = await del_user(user_id=user_id, db=db)
+        user_repo = UserRepository(db)
+        remove_user = await user_repo.del_user(user_id=user_id)
     except UserNotFound as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Пользователя не существует!"
@@ -59,7 +56,7 @@ async def delete_user(
 @router.get("/{user_id}", status_code=status.HTTP_200_OK)
 async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
     try:
-        user = await get_user(user_id=user_id, db=db)
+        user = await UserRepository(db).get_user(user_id=user_id)
         return user
     except UserNotFound as e:
         raise HTTPException(
@@ -72,8 +69,8 @@ async def auth_user(
     response: Response, user_data: UserIn, db: AsyncSession = Depends(get_db)
 ):
     try:
-        user = await authenticate_user(
-            username=user_data.username, password=user_data.password, db=db
+        user = await UserRepository(db).authenticate_user(
+            username=user_data.username, password=user_data.password
         )
     except UserNotFound as e:
         raise HTTPException(
@@ -106,3 +103,5 @@ async def logout_user(request: Request, db: AsyncSession = Depends(get_db)):
     response = JSONResponse(content={"msg": "Успешный выход!"})
     response.delete_cookie("user_cookie")
     return response
+
+
