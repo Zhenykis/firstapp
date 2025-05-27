@@ -10,12 +10,9 @@ from fastapi import APIRouter, HTTPException, Depends, status, Response
 from auth.auth_middleware import AuthMiddleWare
 from models import User, Advert
 from repository.advertisements import (
-    create_advert,
-    get_full_advert,
+    AdvertRepository,
     UserNotFound,
-    delete_advert as del_advert,
     AdvertNotFound,
-    get_list_advert,
     CurrentUserError
 )
 from db_helper import get_db
@@ -37,13 +34,12 @@ async def create_advertisement(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Нет пользователя с таким ID!",
         )
-    db_advert = await create_advert(
+    db_advert = await AdvertRepository(db).create_advert(
         title=advert_data.title,
         description=advert_data.description,
         advert_type=advert_data.type,
         user_id=advert_data.user_id,
         created_at=advert_data.created_at,
-        db=db,
     )
 
     return f"Объявление создано!"
@@ -56,7 +52,10 @@ async def delete_advert(
         current_user: User = Depends(get_current_user)
 ):
     try:
-        advert = await del_advert(advert_id=advert_id, db=db, current_user=current_user)
+        advert = await AdvertRepository(db).delete_advert(
+            advert_id=advert_id,
+            current_user=current_user
+        )
     except AdvertNotFound as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -72,7 +71,7 @@ async def delete_advert(
 
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_all_advert(limit_advert: int, db: AsyncSession = Depends(get_db)):
-    advert = await get_list_advert(limit_advert=limit_advert, db=db)
+    advert = await AdvertRepository(db).get_list_advert(limit_advert=limit_advert)
     return advert
 
 
@@ -84,7 +83,7 @@ async def get_advert(advert_id: int, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Объявление отсутствует!"
         )
-    full_advert = await get_full_advert(advert_id=advert_id, db=db)
+    full_advert = await AdvertRepository(db).get_full_advert(advert_id=advert_id)
     return full_advert
 
 

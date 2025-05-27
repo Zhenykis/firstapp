@@ -16,9 +16,11 @@ class DoubleNameException(Exception): ...
 
 class UserNotFound(Exception): ...
 
+
 class  UserRepository:
     def __init__(self,db: AsyncSession):
         self.db = db
+
     async def create_user(
         self,
         username: str,

@@ -5,8 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, status, Response, Request
 from starlette.responses import JSONResponse
 from sqlalchemy import update
 from auth.utils import get_password_hash, generate_token
-from repository.user import UserRepository, UserNotFound
-
+from repository.user import UserRepository, UserNotFound, DoubleNameException
 
 from auth.schemas import UserIn
 from db_helper import get_db

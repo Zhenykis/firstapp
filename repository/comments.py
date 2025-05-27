@@ -14,38 +14,41 @@ class CommentNotFound(Exception):
     ...
 
 
+class CommentRepository:
+    def __init__(self, db:AsyncSession):
+        self.db = db
 
-async def create_comment(
-        db: AsyncSession,
+    async def create_comment(
+            self,
 
-        text: str,
-        user_id: int,
-        advert_id: int,
-        created_at: datetime
-):
-    new_comment = Comment(
+            text: str,
+            user_id: int,
+            advert_id: int,
+            created_at: datetime
+    ):
+        new_comment = Comment(
 
-        text=text,
-        user_id=user_id,
-        advert_id=advert_id,
-        created_at=created_at
-    )
-
-    db.add(new_comment)
-    await db.commit()
-    return CommentIn
-
-
-async def del_comment(comment_id:int, db: AsyncSession):
-    try:
-        result = await db.execute(
-            select(Comment)
-            .where(Comment.id == comment_id)
+            text=text,
+            user_id=user_id,
+            advert_id=advert_id,
+            created_at=created_at
         )
-        comment = result.scalars().one()
-    except NoResultFound as e:
-        raise CommentNotFound ("Комментарий отсутствует!")
 
-    await db.delete(comment)
-    await db.commit()
+        self.db.add(new_comment)
+        await self.db.commit()
+        return CommentIn
+
+
+    async def del_comment(self, comment_id:int):
+        try:
+            result = await self.db.execute(
+                select(Comment)
+                .where(Comment.id == comment_id)
+            )
+            comment = result.scalars().one()
+        except NoResultFound as e:
+            raise CommentNotFound ("Комментарий отсутствует!")
+
+        await self.db.delete(comment)
+        await self.db.commit()
 
