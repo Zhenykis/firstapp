@@ -1,27 +1,29 @@
 from datetime import datetime
 from email.policy import default
+from math import ceil
 
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import AdvertType, Advert
 from advert.models import AdvertIn
 from models import User
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload, Query
+from typing import Annotated, Optional, List
+from fastapi import Query
 class UserNotFound(Exception): ...
-
+from advert.models import PaginatedAdverts
 
 class AdvertNotFound(Exception): ...
 
 
-class CurrentUserError(Exception):
-    ...
+class CurrentUserError(Exception): ...
 
 
 class AdvertRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
+
     async def create_advert(
         self,
         title: str,
@@ -47,26 +49,58 @@ class AdvertRepository:
         await self.db.commit()
         return AdvertIn
 
-
     async def delete_advert(self, advert_id: int, current_user: User):
         try:
             result = await self.db.execute(select(Advert).where(Advert.id == advert_id))
             advert = result.scalars().one()
 
             if advert.user_id != current_user.id:
-                raise CurrentUserError ("Данный пользователь не может удалить объявление!")
+                raise CurrentUserError(
+                    "Данный пользователь не может удалить объявление!"
+                )
 
             await self.db.delete(advert)
             await self.db.commit()
         except NoResultFound as e:
             raise AdvertNotFound("Объявления не существует!")
 
+    async def get_list_advert(
+            self,
+            page: Annotated[int, Query(description="Номер страницы", ge=1)]  = 1,
+            per_page: Annotated[int, Query(description="Количество элементов на странице", ge=1,le=10)] = 10,
+            advert_type: Annotated[Optional[AdvertType], Query(description="Фильтр по типу объявления")] = None,
+            is_active: Annotated[Optional[bool], Query(description="Фильтр статуса объявления")] = None,
 
-    async def get_list_advert(self, limit_advert: int):
-        result = await self.db.execute(select(Advert).limit(limit_advert))
-        all_advert = result.scalars().all()
-        return all_advert
+    ):
+        query = select(Advert).options(selectinload(Advert.comments))
 
+        if advert_type is not None:
+            query = query.where(Advert.type == advert_type)
+        if is_active is not None:
+            query = query.where(Advert.is_active == is_active)
+
+        count_advert = select(func.count()).select_from(query.subquery())
+        total_result =  await self.db.execute(count_advert)
+        total_advert = total_result.scalar()
+
+        offset = (page -1) * per_page
+        total_pages = ceil(total_advert / per_page) if total_advert > 0 else 1
+
+        query = query.order_by(Advert.created_at.desc()).offset(offset).limit(per_page)
+        result = await self.db.execute(query)
+        adverts = result.unique().scalars().all()
+
+        return PaginatedAdverts(
+            items=adverts,
+            total=total_advert,
+            page=page,
+            per_page=per_page,
+            total_pages=total_pages,
+        )
+
+        # result = await self.db.execute(select(Advert).limit(limit_advert))
+        # all_advert = result.scalars().all()
+        # return all_advert
 
 
     async def get_full_advert(self, advert_id: int):

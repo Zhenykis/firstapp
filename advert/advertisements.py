@@ -1,4 +1,5 @@
 from os.path import defpath
+from typing import List
 
 from fastapi import APIRouter
 from starlette import status
@@ -13,11 +14,12 @@ from repository.advertisements import (
     AdvertRepository,
     UserNotFound,
     AdvertNotFound,
-    CurrentUserError
+    CurrentUserError,
+    AdvertType
 )
 from db_helper import get_db
 from auth.current_user import get_current_user
-
+from advert.models import PaginatedAdverts
 router = APIRouter(
     prefix="/advertisements",
     tags=["advert"],
@@ -47,14 +49,13 @@ async def create_advertisement(
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_advert(
-        advert_id: int,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(get_current_user)
+    advert_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         advert = await AdvertRepository(db).delete_advert(
-            advert_id=advert_id,
-            current_user=current_user
+            advert_id=advert_id, current_user=current_user
         )
     except AdvertNotFound as e:
         raise HTTPException(
@@ -62,28 +63,30 @@ async def delete_advert(
             detail="Объявление не существует!",
         )
     except CurrentUserError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
-
-@router.get("/", status_code=status.HTTP_200_OK)
-async def get_all_advert(limit_advert: int, db: AsyncSession = Depends(get_db)):
-    advert = await AdvertRepository(db).get_list_advert(limit_advert=limit_advert)
-    return advert
+@router.get("/",response_model=PaginatedAdverts[AdvertIn], status_code=status.HTTP_200_OK)
+async def get_all_advert(page: int,
+                         per_page: int,
+                         advert_type: AdvertType,
+                         is_active:bool,
+                         db: AsyncSession = Depends(get_db)):
+    return await AdvertRepository(db).get_list_advert(
+        page=page,
+        per_page=per_page,
+        advert_type=advert_type,
+        is_active=is_active
+    )
+    #return advert
 
 
 @router.get("/{advert_id}", status_code=status.HTTP_200_OK)
 async def get_advert(advert_id: int, db: AsyncSession = Depends(get_db)):
-    advert =  await db.get(Advert, advert_id)
+    advert = await db.get(Advert, advert_id)
     if not advert:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Объявление отсутствует!"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Объявление отсутствует!"
         )
     full_advert = await AdvertRepository(db).get_full_advert(advert_id=advert_id)
     return full_advert
-
-

@@ -23,7 +23,7 @@ async def registration_users(user_data: UserIn, db: AsyncSession = Depends(get_d
     try:
         user_repo = UserRepository(db)
         db_user = await user_repo.create_user(
-            username=user_data.username, password=hash_password,is_admin=False
+            username=user_data.username, password=hash_password, is_admin=False
         )
     except DoubleNameException as e:
         raise HTTPException(
@@ -102,5 +102,3 @@ async def logout_user(request: Request, db: AsyncSession = Depends(get_db)):
     response = JSONResponse(content={"msg": "Успешный выход!"})
     response.delete_cookie("user_cookie")
     return response
-
-

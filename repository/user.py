@@ -17,8 +17,8 @@ class DoubleNameException(Exception): ...
 class UserNotFound(Exception): ...
 
 
-class  UserRepository:
-    def __init__(self,db: AsyncSession):
+class UserRepository:
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     async def create_user(
@@ -40,7 +40,6 @@ class  UserRepository:
             raise DoubleNameException("Пользователь с таким логином уже существует!")
         return UserOut
 
-
     async def del_user(self, user_id: int):
         try:
             result = await self.db.execute(select(User).where(User.id == user_id))
@@ -51,17 +50,17 @@ class  UserRepository:
         except NoResultFound as e:
             raise UserNotFound("Пользователя не существует!")
 
-
     async def get_user(self, user_id: int):
         user = await self.db.get(User, user_id)
         if user is None:
             raise UserNotFound(f"Пользователя не существует")
         return user
 
-
     async def authenticate_user(self, username: str, password: str):
         try:
-            result = await self.db.execute(select(User).where(User.username == username))
+            result = await self.db.execute(
+                select(User).where(User.username == username)
+            )
             user = result.scalars().one()
         except NoResultFound as e:
             raise UserNotFound("Неверный логин!")

@@ -20,7 +20,9 @@ class User(Base):
     is_banned: Mapped[bool] = mapped_column(default=False)
     token: Mapped[str] = mapped_column(nullable=True)
 
-    comments: Mapped[list["Comment"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    comments: Mapped[list["Comment"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class AdvertType(StrEnum):
@@ -45,8 +47,11 @@ class Advert(Base):
         default=True, server_default=text("true"), nullable=False
     )
 
-    comments: Mapped[list["Comment"]] = relationship(back_populates="advert", cascade="all, delete-orphan")
-    #comments = relationship("Comment", back_populates="advert", cascade="all, delete-orphan")
+    comments: Mapped[list["Comment"]] = relationship(
+        back_populates="advert", cascade="all, delete-orphan"
+    )
+    # comments = relationship("Comment", back_populates="advert", cascade="all, delete-orphan")
+
 
 class Comment(Base):
     __tablename__ = "comment"
@@ -63,5 +68,3 @@ class Comment(Base):
 
     user = relationship("User", back_populates="comments")
     advert = relationship("Advert", back_populates="comments")
-
-

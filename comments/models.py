@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class CommentIn(BaseModel):
     text: str
     user_id: int
