@@ -24,12 +24,12 @@ class AdvertOut(BaseModel):
     user_id: int
     created_at: datetime
 
-class AdvertWithComments(AdvertOut):
-    comments: List[CommentIn]
+# class AdvertWithComments(AdvertOut):
+#     comments: List[CommentIn]
 
 
 class PaginatedAdverts(BaseModel):
-    items: List[AdvertIn]
+    items: list[AdvertIn]
     total: int
     page: int
     per_page: int

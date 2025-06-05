@@ -90,8 +90,19 @@ class AdvertRepository:
         result = await self.db.execute(query)
         adverts = result.unique().scalars().all()
 
+        adverts_in = [
+            AdvertIn(
+                advert_id= advert.id,
+                title= advert.title,
+                description= advert.description,
+                type= advert.type,
+                user_id=advert.user_id,
+                created_at=advert.created_at,
+            )
+            for advert in adverts
+        ]
         return PaginatedAdverts(
-            items=adverts,
+            items=adverts_in,
             total=total_advert,
             page=page,
             per_page=per_page,

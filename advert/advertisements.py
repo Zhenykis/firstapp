@@ -66,7 +66,7 @@ async def delete_advert(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
-@router.get("/",response_model=PaginatedAdverts[AdvertIn], status_code=status.HTTP_200_OK)
+@router.get("/",response_model=PaginatedAdverts, status_code=status.HTTP_200_OK)
 async def get_all_advert(page: int,
                          per_page: int,
                          advert_type: AdvertType,
