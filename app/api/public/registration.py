@@ -1,14 +1,14 @@
-from idlelib.rpc import response_queue
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, HTTPException, Depends, status, Response, Request
 from starlette.responses import JSONResponse
 from sqlalchemy import update
+
+from auth.token import generate_and_set_token
 from auth.utils import get_password_hash, generate_token
 from repository.user import UserRepository, UserNotFound, DoubleNameException
 
-from auth.schemas import UserIn
-from db_helper import get_db
+from schemas.user import UserIn, UserReg
+from app.db_helper import get_db
 from models import User
 
 router = APIRouter(
@@ -18,13 +18,10 @@ router = APIRouter(
 
 
 @router.post("/registration/", status_code=status.HTTP_201_CREATED)
-async def registration_users(user_data: UserIn, db: AsyncSession = Depends(get_db)):
+async def registration_users(user_data: UserReg, user_repository: UserRepository = Depends()):
     hash_password = get_password_hash(user_data.password)
     try:
-        user_repo = UserRepository(db)
-        db_user = await user_repo.create_user(
-            username=user_data.username, password=hash_password, is_admin=False
-        )
+        db_user = await user_repository.create_user(user_data)
     except DoubleNameException as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -34,9 +31,7 @@ async def registration_users(user_data: UserIn, db: AsyncSession = Depends(get_d
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(
-    request: Request, user_id: int, db: AsyncSession = Depends(get_db)
-):
+async def delete_user(request: Request, user_id: int, user_repository: UserRepository = Depends()):
 
     if not hasattr(request.state, "user"):
         raise HTTPException(
@@ -44,8 +39,7 @@ async def delete_user(
         )
 
     try:
-        user_repo = UserRepository(db)
-        remove_user = await user_repo.del_user(user_id=user_id)
+        await user_repository.del_user(user_id=user_id)
     except UserNotFound as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Пользователя не существует!"
@@ -53,9 +47,9 @@ async def delete_user(
 
 
 @router.get("/{user_id}", status_code=status.HTTP_200_OK)
-async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_user_by_id(user_id: int, user_repository: UserRepository = Depends()):
     try:
-        user = await UserRepository(db).get_user(user_id=user_id)
+        user = await user_repository.get_user(user_id=user_id)
         return user
     except UserNotFound as e:
         raise HTTPException(
@@ -65,10 +59,13 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/authenticate/", status_code=status.HTTP_200_OK)
 async def auth_user(
-    response: Response, user_data: UserIn, db: AsyncSession = Depends(get_db)
+        response: Response,
+        user_data: UserReg,
+        user_repository: UserRepository = Depends(),
+        token: str = Depends(generate_and_set_token)
 ):
     try:
-        user = await UserRepository(db).authenticate_user(
+        user = await user_repository.authenticate_user(
             username=user_data.username, password=user_data.password
         )
     except UserNotFound as e:
@@ -76,11 +73,7 @@ async def auth_user(
             status_code=status.HTTP_404_NOT_FOUND, detail="Неверный логин или пароль!"
         )
 
-    token = generate_token()
-    user.token = token
-    await db.commit()
-
-    response.set_cookie(key="user_cookie", value=user.token)
+    response.set_cookie(key="user_cookie", value=token)
 
     return f"Пользователь {user_data.username} успешно авторизован!"
 

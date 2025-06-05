@@ -21,7 +21,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from models import Base
-from db_helper import DATABASE_URL
+from app.db_helper import DATABASE_URL
 
 target_metadata = Base.metadata
 

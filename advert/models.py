@@ -1,8 +1,7 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
-from enum import Enum, StrEnum
-from comments.models import CommentIn
-from typing import List
+from pydantic import BaseModel
+from enum import StrEnum
+
 
 class AdvertType(StrEnum):
     VEHICLE = "vehicle"

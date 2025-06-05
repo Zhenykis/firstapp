@@ -1,42 +1,30 @@
-from datetime import datetime
-from email.policy import default
-from http.client import HTTPException
-
-from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import AdvertType, Advert, Comment
-from advert.models import AdvertIn
-from models import User
-from sqlalchemy import select
-from comments.models import CommentIn
-
+from sqlalchemy.exc import NoResultFound
+from models.models import Comment
+from sqlalchemy import insert, delete
+from repository.user import UserRepository
+from schemas.comment import CommentIn
+from app.db_helper import get_db
 
 class CommentNotFound(Exception): ...
 
 
 class CommentRepository:
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    def __init__(self):
+        self.db = get_db()
+        self._table = Comment
+        self._user_repository = UserRepository()
 
     async def create_comment(
-        self, text: str, user_id: int, advert_id: int, created_at: datetime
-    ):
-        new_comment = Comment(
-            text=text, user_id=user_id, advert_id=advert_id, created_at=created_at
-        )
+            self, data: CommentIn
+    ) -> None:
+        user = await self._user_repository.get_user(data.user_id)
+        if not user:
+            return
 
-        self.db.add(new_comment)
-        await self.db.commit()
-        return CommentIn
+        stmt = insert(self._table).values(data.dict())
+
+        await self.db.execute(stmt)
 
     async def del_comment(self, comment_id: int):
-        try:
-            result = await self.db.execute(
-                select(Comment).where(Comment.id == comment_id)
-            )
-            comment = result.scalars().one()
-        except NoResultFound as e:
-            raise CommentNotFound("Комментарий отсутствует!")
-
-        await self.db.delete(comment)
-        await self.db.commit()
+        stmt = delete(self._table).where(self._table.id == comment_id)
+        await self.db.execute(stmt)

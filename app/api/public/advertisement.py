@@ -1,23 +1,15 @@
-from os.path import defpath
-from typing import List
-
-from fastapi import APIRouter
-from starlette import status
 from advert.models import AdvertIn
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, HTTPException, Depends, status, Response
-from auth.auth_middleware import AuthMiddleWare
+from fastapi import APIRouter, HTTPException, Depends, status
 from models import User, Advert
 from repository.advertisements import (
     AdvertRepository,
-    UserNotFound,
     AdvertNotFound,
     CurrentUserError,
     AdvertType
 )
-from db_helper import get_db
+from app.db_helper import get_db
 from auth.current_user import get_current_user
 from advert.models import PaginatedAdverts
 router = APIRouter(

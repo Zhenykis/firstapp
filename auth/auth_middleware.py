@@ -1,7 +1,7 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request, HTTPException, status
 from starlette.middleware.base import RequestResponseEndpoint
-from db_helper import AsyncSessionLocal
+from app.db_helper import AsyncSessionLocal
 from models import User
 from sqlalchemy import select
 
