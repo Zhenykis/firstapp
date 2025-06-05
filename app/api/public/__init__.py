@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from comment import router as comment_router
 from advertisement import  router as advert_router
-from registration import router as reg_router
+from user import router as reg_router
 
 
 router = APIRouter()

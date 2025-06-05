@@ -10,3 +10,7 @@ BD_PORT = getenv("BD_PORT", default=5432)
 BD_USER = getenv("BD_USER", default="postgres")
 BD_PASSWORD = getenv("BD_PASSWORD", default="postgres")
 BD_NAME = getenv("BD_NAME", default="mydatabase")
+
+
+# ======= AUTH
+COOKIES_KEY = getenv("COOKIES_KEY", default="user_cookie")

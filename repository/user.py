@@ -1,8 +1,10 @@
+
+
 from app.db_helper import get_db
 from models.models import User
 from schemas.user import UserOut, UserReg
 from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy import select
+from sqlalchemy import select, insert, delete, update
 from auth.utils import verify_password
 from schemas.user import UserIn
 
@@ -19,47 +21,45 @@ class UserRepository:
 
     async def create_user(
         self,
-      data: UserReg,
-    ):
-        new_user = self._table(
+        data: UserReg,
+        hash_password: bytes,
+        is_admin: bool,
+    ) -> UserOut:
+        stmt = insert(self._table).values(
             username=data.username,
-            password=data.password,
-            is_admin=data.is_admin,
+            password=hash_password,
+            is_admin=is_admin,
         )
-
-        self._db.add(new_user)
         try:
-            await self._db.commit()
-        except IntegrityError as e:
-            raise DoubleNameException("Пользователь с таким логином уже существует!")
-        return UserOut
+            result = await self._db.execute(stmt)
+        except IntegrityError:
+            raise DoubleNameException("User already exist")
+        return UserOut(**result)
 
     async def del_user(self, user_id: int):
-        try:
-            result = await self._db.execute(select(self._table).where(self._table.id == user_id))
-            user = result.scalars().one()
+        stmt = delete(self._table).where(self._table.id == user_id)
+        await self._db.execute(stmt)
 
-            await self._db.delete(user)
-            await self._db.commit()
-        except NoResultFound as e:
-            raise UserNotFound("Пользователя не существует!")
+    async def get_user(self, user_id: int) -> UserOut | None:
+        stmt = select(self._table).where(self._table.id == user_id)
+        user = await self._db.execute(stmt)
+        return UserOut(**user) if user else None
 
-    async def get_user(self, user_id: int):
-        user = await self._db.get(self._table, user_id)
-        if user is None:
-            raise UserNotFound(f"Пользователя не существует")
-        return user
+    async def authenticate_user(self, username: str, password: str) -> UserOut | None:
 
-    async def authenticate_user(self, username: str, password: str):
-        try:
-            result = await self._db.execute(
-                select(self._table).where(self._table.username == username)
-            )
-            user = result.scalars().one()
-        except NoResultFound as e:
-            raise UserNotFound("Неверный логин!")
-        # if not user:
-        #     return False
-        if not verify_password(password, user.password):
-            raise UserNotFound("Неверный пароль!")
-        return user
+        result = await self._db.execute(
+            select(self._table).where(self._table.username == username)
+        )
+        if not result:
+            return None
+
+        if not verify_password(password, result.password):
+            return None
+
+        return UserOut(**result)
+
+    async def update(self, token: str):
+        result = await self._db.execute(
+            update(User).where(User.token == token).values(token=None)
+        )
+        return result

@@ -4,7 +4,7 @@ import secrets
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def get_password_hash(password: str):
+def get_password_hash(password: str) -> bytes:
     password_hash_str = pwd_context.hash(password)
     return password_hash_str.encode("utf-8")
 

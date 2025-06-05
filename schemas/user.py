@@ -3,18 +3,17 @@ from pydantic import BaseModel
 
 class UserIn(BaseModel):
     username: str
-    password: bytes
-    is_admin: bool = False
+    password: str
 
 
-class UserOut(UserIn):
-    username: str
+# class UserOut(UserIn):
+#     username: str
 
 
 class UserToken(UserIn):
     token: str
 
-class UserReg(BaseModel):
+class UserOut(BaseModel):
+    id: int
     username: str
-    password: str
-    is_admin: bool = False
+    is_admin: bool

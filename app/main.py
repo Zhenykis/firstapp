@@ -1,7 +1,7 @@
 
 import uvicorn
 from fastapi import FastAPI
-from app.api.public.registration import router as reg_router
+from app.api.public.user import router as reg_router
 from app.api.public.advertisement import router as advert_router
 from auth.auth_middleware import AuthMiddleWare
 from app.api.public.comment import router as comment_router
