@@ -31,8 +31,8 @@ class AdvertRepository:
         title: str,
         description: str,
         advert_type: AdvertType,
-        created_at: datetime,
         user_id: int,
+        is_active: bool
     ):
 
 
@@ -41,15 +41,17 @@ class AdvertRepository:
         if not user:
             raise UserNotFound(f"Нет пользователя с таким ID({user_id})!")
 
-        new_advert = insert(self._table).values(
+        stmt = insert(self._table).values(
             title=title,
             description=description,
             type=advert_type,
-            created_at=created_at,
             user_id=user_id,
+            is_active= is_active,
+            created_at=datetime.now()
         ).returning(self._table)
 
-        return AdvertOut(**new_advert)
+        result = await self._db.fetch_one(stmt)
+        return AdvertOut(**result)
 
     async def delete_advert(self, advert_id: int, current_user: User):
         try:

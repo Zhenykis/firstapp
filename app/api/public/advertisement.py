@@ -20,23 +20,17 @@ router = APIRouter(
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_advertisement(
-    advert_data: AdvertIn, db: AsyncSession = Depends(get_db)
+    advert_data: AdvertIn, advert_repository: AdvertRepository = Depends()
 ):
-    user = await db.get(User, advert_data.user_id)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Нет пользователя с таким ID!",
-        )
-    db_advert = await AdvertRepository(db).create_advert(
+    advert = await advert_repository.create_advert(
         title=advert_data.title,
         description=advert_data.description,
         advert_type=advert_data.type,
         user_id=advert_data.user_id,
-        created_at=advert_data.created_at,
+        is_active=advert_data.is_active,
     )
 
-    return f"Объявление создано!"
+    return advert
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
