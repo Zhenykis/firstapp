@@ -12,7 +12,7 @@ router = APIRouter(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_comment(comment_data: CommentIn, comment_repository: CommentRepository = Depends()):
     await comment_repository.create_comment(comment_data)
-    return Response(content= "Комментарий к объявлению создан!")
+    return Response(content= "Comment created")
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)

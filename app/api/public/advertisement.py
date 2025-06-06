@@ -1,17 +1,17 @@
-from advert.models import AdvertIn
+from schemas.advert import AdvertIn
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, HTTPException, Depends, status
-from models import User, Advert
+from models.models import User, Advert
 from repository.advertisements import (
     AdvertRepository,
     AdvertNotFound,
     CurrentUserError,
     AdvertType
 )
-from app.db_helper import get_db
+from app.core.db_helper import get_db
 from auth.current_user import get_current_user
-from advert.models import PaginatedAdverts
+from schemas.advert import PaginatedAdverts
 router = APIRouter(
     prefix="/advertisements",
     tags=["advert"],
@@ -42,11 +42,11 @@ async def create_advertisement(
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_advert(
     advert_id: int,
-    db: AsyncSession = Depends(get_db),
+    advert_repository: AdvertRepository = Depends(),
     current_user: User = Depends(get_current_user),
 ):
     try:
-        advert = await AdvertRepository(db).delete_advert(
+        advert = await advert_repository.delete_advert(
             advert_id=advert_id, current_user=current_user
         )
     except AdvertNotFound as e:

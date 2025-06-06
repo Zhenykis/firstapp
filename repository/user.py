@@ -1,12 +1,12 @@
 
 
-from app.db_helper import get_db
+from app.core.db_helper import get_db
 from models.models import User
-from schemas.user import UserOut, UserReg
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from schemas.user import UserOut, UserIn
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, insert, delete, update
 from auth.utils import verify_password
-from schemas.user import UserIn
+
 
 class DoubleNameException(Exception): ...
 
@@ -21,17 +21,19 @@ class UserRepository:
 
     async def create_user(
         self,
-        data: UserReg,
+        data: UserIn,
         hash_password: bytes,
         is_admin: bool,
+        is_banned: bool,
     ) -> UserOut:
         stmt = insert(self._table).values(
             username=data.username,
             password=hash_password,
             is_admin=is_admin,
-        )
+            is_banned=is_banned,
+        ).returning(self._table)
         try:
-            result = await self._db.execute(stmt)
+            result = await self._db.fetch_one(stmt)
         except IntegrityError:
             raise DoubleNameException("User already exist")
         return UserOut(**result)
@@ -42,12 +44,11 @@ class UserRepository:
 
     async def get_user(self, user_id: int) -> UserOut | None:
         stmt = select(self._table).where(self._table.id == user_id)
-        user = await self._db.execute(stmt)
+        user = await self._db.fetch_one(stmt)
         return UserOut(**user) if user else None
 
     async def authenticate_user(self, username: str, password: str) -> UserOut | None:
-
-        result = await self._db.execute(
+        result = await self._db.fetch_one(
             select(self._table).where(self._table.username == username)
         )
         if not result:
@@ -58,8 +59,8 @@ class UserRepository:
 
         return UserOut(**result)
 
-    async def update(self, token: str):
+    async def update(self,user_id:int, token: str | None):
         result = await self._db.execute(
-            update(User).where(User.token == token).values(token=None)
+            update(self._table).where(self._table.id == user_id).values(token=token).returning(self._table)
         )
         return result

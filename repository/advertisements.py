@@ -1,18 +1,18 @@
 from datetime import datetime
-from email.policy import default
 from math import ceil
 
-from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import AdvertType, Advert
-from advert.models import AdvertIn
-from models import User
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload, Query
-from typing import Annotated, Optional, List
+from sqlalchemy.exc import NoResultFound
+
+from app.core.db_helper import get_db
+from models.models import AdvertType, Advert
+from schemas.advert import AdvertIn, AdvertOut
+from models.models import User
+from sqlalchemy import select, func, insert
+from sqlalchemy.orm import selectinload
+from typing import Annotated, Optional
 from fastapi import Query
 class UserNotFound(Exception): ...
-from advert.models import PaginatedAdverts
+from schemas.advert import PaginatedAdverts
 
 class AdvertNotFound(Exception): ...
 
@@ -21,8 +21,10 @@ class CurrentUserError(Exception): ...
 
 
 class AdvertRepository:
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    def __init__(self):
+        self._db = get_db()
+        self._table = Advert
+        self._user = User
 
     async def create_advert(
         self,
@@ -32,26 +34,26 @@ class AdvertRepository:
         created_at: datetime,
         user_id: int,
     ):
-        new_advert = Advert(
+
+
+        user = await self._db.fetch_one(select(self._user).where(self._user.id == user_id))
+
+        if not user:
+            raise UserNotFound(f"Нет пользователя с таким ID({user_id})!")
+
+        new_advert = insert(self._table).values(
             title=title,
             description=description,
             type=advert_type,
             created_at=created_at,
             user_id=user_id,
-        )
+        ).returning(self._table)
 
-        result = await self.db.execute(select(User).where(User.id == user_id))
-        user = result.scalars().one_or_none()
-        if not user:
-            raise UserNotFound(f"Нет пользователя с таким ID({user_id})!")
-
-        self.db.add(new_advert)
-        await self.db.commit()
-        return AdvertIn
+        return AdvertOut(**new_advert)
 
     async def delete_advert(self, advert_id: int, current_user: User):
         try:
-            result = await self.db.execute(select(Advert).where(Advert.id == advert_id))
+            result = await self._db.execute(select(Advert).where(Advert.id == advert_id))
             advert = result.scalars().one()
 
             if advert.user_id != current_user.id:

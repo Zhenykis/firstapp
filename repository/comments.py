@@ -1,9 +1,8 @@
-from sqlalchemy.exc import NoResultFound
 from models.models import Comment
 from sqlalchemy import insert, delete
 from repository.user import UserRepository
 from schemas.comment import CommentIn
-from app.db_helper import get_db
+from app.core.db_helper import get_db
 
 class CommentNotFound(Exception): ...
 
